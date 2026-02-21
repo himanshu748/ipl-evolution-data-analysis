@@ -78,6 +78,16 @@ def process_all_matches():
     balls_df = pd.concat(all_dfs, ignore_index=True)
     print(f"Total deliveries: {len(balls_df):,}")
 
+    # CRITICAL: Normalize season to string to avoid mixed int/str duplicates
+    balls_df['season'] = balls_df['season'].astype(str)
+
+    # Normalize split-season names to single years
+    season_norm = {
+        '2007/08': '2008', '2009/10': '2010', '2020/21': '2021'
+    }
+    balls_df['season'] = balls_df['season'].replace(season_norm)
+    print(f"Unique seasons after normalization: {sorted(balls_df['season'].unique())}")
+
     # Parse dates
     balls_df['start_date'] = pd.to_datetime(balls_df['start_date'], errors='coerce')
     balls_df['year'] = balls_df['start_date'].dt.year

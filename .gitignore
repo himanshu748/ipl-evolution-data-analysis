@@ -1,0 +1,8 @@
+data/ipl_raw/
+data/ipl_data.zip
+data/ipl_deliveries.csv
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+*.egg-info/

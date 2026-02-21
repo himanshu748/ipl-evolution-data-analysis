@@ -83,10 +83,21 @@ def process_all_matches():
 
     # Normalize split-season names to single years
     season_norm = {
-        '2007/08': '2008', '2009/10': '2010', '2020/21': '2021'
+        '2007/08': '2008', '2009/10': '2010', '2020/21': '2020'
     }
     balls_df['season'] = balls_df['season'].replace(season_norm)
     print(f"Unique seasons after normalization: {sorted(balls_df['season'].unique())}")
+
+    # Normalize team names (franchise rebrandings)
+    team_norm = {
+        'Royal Challengers Bengaluru': 'Royal Challengers Bangalore',
+        'Delhi Capitals': 'Delhi Daredevils',
+        'Punjab Kings': 'Kings XI Punjab',
+        'Rising Pune Supergiants': 'Rising Pune Supergiant',
+    }
+    for col in ['batting_team', 'bowling_team']:
+        if col in balls_df.columns:
+            balls_df[col] = balls_df[col].replace(team_norm)
 
     # Parse dates
     balls_df['start_date'] = pd.to_datetime(balls_df['start_date'], errors='coerce')
@@ -154,6 +165,10 @@ def process_all_matches():
 
     matches_df = pd.DataFrame(matches)
     matches_df['date'] = pd.to_datetime(matches_df['date'], errors='coerce')
+
+    # Normalize team names in match-level data
+    for col in ['team1', 'team2', 'winner', 'toss_winner', 'batting_first_team', 'batting_second_team']:
+        matches_df[col] = matches_df[col].replace(team_norm)
 
     # Determine if batting first won
     matches_df['batting_first_won'] = matches_df['winner'] == matches_df['batting_first_team']

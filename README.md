@@ -1,4 +1,4 @@
-# 🏏 The Evolution of Indian Cricket: How IPL Transformed a Nation's Game
+# The Evolution of Indian Cricket: How IPL Transformed a Nation's Game
 
 ### Codedex February 2026 Dataset Challenge Submission
 
@@ -12,7 +12,7 @@
 
 The **Indian Premier League (IPL)** launched in 2008 and fundamentally changed cricket forever. But beyond the fireworks and celebrity owners, **what does the data actually tell us?**
 
-This project analyzes **278,205 ball-by-ball deliveries** across **1,169 IPL matches** spanning **17 seasons (2008–2025)** to answer three key questions:
+This project analyzes committed IPL summary datasets across **1,169 IPL matches** spanning **18 seasons (2008-2025)** to answer three key questions:
 
 > 🔍 **Q1:** How has batting evolved? Are teams scoring faster than ever?  
 > 🔍 **Q2:** Has the bat-vs-ball balance shifted? Are bowlers endangered?  
@@ -26,40 +26,34 @@ This project analyzes **278,205 ball-by-ball deliveries** across **1,169 IPL mat
 | 2 | **Bowlers Have Adapted, Not Died** | Despite soaring economy rates, wickets per match remain stable |
 | 3 | **The Toss is (Mostly) Irrelevant** | Toss advantage hovers around 50%, though chasing has become preferred in recent seasons |
 
-### 💡 Surprise "Aha" Moment
-> **Death overs (16-20) run rates have exploded from ~8.5 RPO to 11+ RPO** — the last 5 overs have genuinely become a different game, driven by the rise of finishers like MS Dhoni, Hardik Pandya, and Rinku Singh.
+### Surprise "Aha" Moment
+> IPL scoring did not rise evenly. Six-hitting growth and high-scoring recent seasons changed the shape of match totals, while wickets remained a meaningful counterweight for bowlers.
 
 ## 📊 Visualizations
 
-The notebook contains **10 interactive Plotly visualizations**:
+The notebook contains reproducible Plotly visualizations based only on the CSVs committed in this repository:
 
-1. 📈 **The Run Explosion** — Avg runs per match & run rate trend (dual-axis)
-2. 💥 **The Boundary Revolution** — Fours vs Sixes per 100 balls (area chart)
-3. 🎳 **The Bowlers Plight** — Economy rates vs Wickets per match (subplot)
-4. 👑 **All-Time Run Scorers** — Top 15 batters colored by strike rate
-5. 🪙 **The Great Toss Debate** — Toss win % & Chase vs Bat-first analysis
-6. 🏆 **Franchise Dominance Map** — Team wins heatmap across seasons
-7. 🏟️ **Run-Scoring Grounds** — Venue comparison with six-hitting data
-8. 🌟 **Mr. Dependable** — Most Player of the Match awards
-9. ⚡ **Three Phases of T20** — Powerplay vs Middle vs Death over scoring
-10. 🎬 **Animated Evolution** — Strike rate vs Average scatter (play button!)
+1. **The Run Explosion** - average match runs and run rate trend
+2. **The Boundary Revolution** - fours and sixes per match
+3. **Bowling Under Pressure** - economy and wicket-taking trends
+4. **The Great Toss Debate** - toss-win conversion and field-first preference
+5. **All-Time Run Scorers** - top batters colored by strike rate
+6. **Top Wicket Takers** - top bowlers colored by economy
 
 ## 📂 Project Structure
 
 ```
-feb_challenge/
+ipl-evolution-data-analysis/
 ├── IPL_Evolution_Analysis.ipynb    # 📓 Main analysis notebook (submission)
 ├── README.md                       # 📋 This file
 ├── data/
-│   ├── ipl_raw/                    # 📦 Raw Cricsheet match files (1,169 × 2)
-│   ├── ipl_deliveries.csv          # 🏏 278,205 ball-by-ball records
 │   ├── ipl_matches.csv             # 📊 1,169 match summaries
 │   ├── ipl_batting_stats.csv       # 🏏 Player batting stats by season
 │   └── ipl_bowling_stats.csv       # 🎳 Player bowling stats by season
 ├── scripts/
-│   ├── process_data.py             # 🔧 Raw data → clean datasets pipeline
+│   ├── validate_data.py            # ✅ Validate committed CSVs
+│   ├── process_data.py             # 🔧 Optional raw data -> clean datasets pipeline
 │   └── create_notebook.py          # 📓 Notebook generator script
-└── visuals/                        # 📸 Exported chart images
 ```
 
 ## 🛠️ How to Run
@@ -69,22 +63,37 @@ feb_challenge/
 pip install pandas numpy plotly matplotlib seaborn jupyter
 ```
 
-### Step 1: Process the data
+### Step 1: Validate the committed data
 ```bash
-python scripts/process_data.py
+python3 scripts/validate_data.py
 ```
 
-### Step 2: Open the notebook
+### Step 2: Regenerate the notebook
+```bash
+python3 scripts/create_notebook.py
+```
+
+### Step 3: Open the notebook
 ```bash
 jupyter notebook IPL_Evolution_Analysis.ipynb
+```
+
+### Optional: Rebuild summary datasets from raw Cricsheet files
+
+`scripts/process_data.py` expects the large raw IPL Cricsheet CSV archive under `data/ipl_raw/`. That raw archive is intentionally not committed. When available locally:
+
+```bash
+python3 scripts/process_data.py
+python3 scripts/validate_data.py
+python3 scripts/create_notebook.py
 ```
 
 ## 📋 Data Source
 
 - **Source:** [Cricsheet.org](https://cricsheet.org/) — Open-source ball-by-ball cricket data
-- **Format:** CSV (ball-by-ball + match info files)
-- **Processing:** Raw match CSVs (2,338 files) parsed and combined into 4 structured datasets using Python/Pandas
-- **Total Data Points:** 278,205 deliveries across 1,169 matches
+- **Committed Format:** CSV summary files for matches, batting-by-season, and bowling-by-season
+- **Processing:** Optional raw match CSVs can be parsed into structured datasets using Python/Pandas
+- **Current committed data:** 1,169 match summaries plus player-season batting and bowling summaries
 
 ## 🏅 Challenge Categories Targeted
 
@@ -92,8 +101,8 @@ jupyter notebook IPL_Evolution_Analysis.ipynb
 |----------|-----|
 | 🏆 **Best Storyteller** | Full end-to-end narrative with clear questions, analysis, and conclusions |
 | 😍 **Best Data Visualization** | 10 interactive Plotly charts with premium dark theme |
-| 💡 **Sherlock "Aha" Moment** | Death overs revolution insight + Six-hitting explosion |
-| 💌 **Best Original Dataset** | Processed 2,338 raw Cricsheet files into clean datasets |
+| 💡 **Sherlock "Aha" Moment** | Scoring growth + six-hitting pressure + toss myth |
+| 💌 **Best Original Dataset** | Summary datasets processed from open Cricsheet data |
 
 ---
 

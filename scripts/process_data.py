@@ -48,9 +48,21 @@ def parse_info_file(filepath):
 
 def process_all_matches():
     """Process all match files and create consolidated DataFrames."""
+    if not os.path.isdir(RAW_DIR):
+        raise FileNotFoundError(
+            f"Raw Cricsheet directory not found: {RAW_DIR}. "
+            "Download/extract the raw IPL CSV archive into data/ipl_raw/ "
+            "or use scripts/validate_data.py with the committed summary CSVs."
+        )
+
     files = os.listdir(RAW_DIR)
     data_files = sorted([f for f in files if f.endswith('.csv') and '_info' not in f])
     info_files = sorted([f for f in files if f.endswith('_info.csv')])
+    if not data_files or not info_files:
+        raise FileNotFoundError(
+            f"Expected match CSV and *_info.csv files in {RAW_DIR}; "
+            f"found {len(data_files)} match files and {len(info_files)} info files."
+        )
 
     print(f"Found {len(data_files)} match data files and {len(info_files)} info files")
 
@@ -61,7 +73,7 @@ def process_all_matches():
         try:
             info_map[match_id] = parse_info_file(os.path.join(RAW_DIR, inf))
         except Exception as e:
-            pass
+            print(f"  Skipping info file {inf}: {e}")
 
     # Read all ball-by-ball data
     all_dfs = []
@@ -70,11 +82,13 @@ def process_all_matches():
             df = pd.read_csv(os.path.join(RAW_DIR, df_file), low_memory=False)
             all_dfs.append(df)
         except Exception as e:
-            pass
+            print(f"  Skipping match file {df_file}: {e}")
         if (i + 1) % 200 == 0:
             print(f"  Processed {i + 1}/{len(data_files)} files...")
 
     print(f"Combining {len(all_dfs)} DataFrames...")
+    if not all_dfs:
+        raise ValueError("No match data files could be parsed")
     balls_df = pd.concat(all_dfs, ignore_index=True)
     print(f"Total deliveries: {len(balls_df):,}")
 

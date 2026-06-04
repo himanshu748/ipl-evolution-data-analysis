@@ -98,20 +98,51 @@ def format_pct(value: float) -> str:
 
 
 def verify_readme_claims(summary: dict[str, Any]) -> list[str]:
-    readme = (ROOT / "README.md").read_text()
     dataset = summary["dataset"]
     scoring = summary["scoring"]
-    expectations = {
-        "match count": f"{dataset['matches']:,} IPL matches",
-        "season coverage": f"{dataset['seasons']}",
-        "latest match date": f"latest committed match date is {dataset['latest_match_date']}",
-        "run-rate lift": f"about {format_pct(scoring['run_rate_change_pct'])}%",
-        "sixes lift": f"about {format_pct(scoring['sixes_per_match_change_pct'])}%",
-    }
+    return verify_document_claims(
+        "README.md",
+        {
+            "match count": f"{dataset['matches']:,} IPL matches",
+            "season coverage": f"{dataset['seasons']}",
+            "latest match date": f"latest committed match date is {dataset['latest_match_date']}",
+            "run-rate lift": f"about {format_pct(scoring['run_rate_change_pct'])}%",
+            "sixes lift": f"about {format_pct(scoring['sixes_per_match_change_pct'])}%",
+        },
+    )
+
+
+def verify_dataset_card(summary: dict[str, Any]) -> list[str]:
+    dataset = summary["dataset"]
+    return verify_document_claims(
+        "data/DATASET.md",
+        {
+            "season coverage": f"- Seasons: {dataset['seasons']}",
+            "match summaries": f"- Match summaries: {dataset['matches']:,}",
+            "batting rows": f"- Batting rows: {dataset['batting_rows']:,}",
+            "bowling rows": f"- Bowling rows: {dataset['bowling_rows']:,}",
+            "latest match date": f"- Latest committed match date: {dataset['latest_match_date']}",
+            "static snapshot caveat": "not a live IPL feed",
+        },
+    )
+
+
+def verify_document_claims(
+    relative_path: str,
+    expectations: dict[str, str],
+) -> list[str]:
+    document = (ROOT / relative_path).read_text()
     return [
-        f"README missing {label}: {expected!r}"
+        f"{relative_path} missing {label}: {expected!r}"
         for label, expected in expectations.items()
-        if expected not in readme
+        if expected not in document
+    ]
+
+
+def verify_docs(summary: dict[str, Any]) -> list[str]:
+    return [
+        *verify_readme_claims(summary),
+        *verify_dataset_card(summary),
     ]
 
 
@@ -121,16 +152,21 @@ def main() -> None:
     parser.add_argument(
         "--verify-readme",
         action="store_true",
-        help="Fail if README headline claims drift from committed CSVs",
+        help="Fail if docs drift from committed CSVs (kept for compatibility)",
+    )
+    parser.add_argument(
+        "--verify-docs",
+        action="store_true",
+        help="Fail if README or dataset-card claims drift from committed CSVs",
     )
     args = parser.parse_args()
 
     summary = build_summary()
-    if args.verify_readme:
-        errors = verify_readme_claims(summary)
+    if args.verify_readme or args.verify_docs:
+        errors = verify_docs(summary)
         if errors:
             raise SystemExit("\n".join(errors))
-        print("README headline claims match committed data")
+        print("README and dataset card claims match committed data")
         return
 
     if args.json:

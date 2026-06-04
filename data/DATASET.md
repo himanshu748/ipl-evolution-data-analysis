@@ -35,7 +35,7 @@
 ```bash
 python3 scripts/validate_data.py
 python3 scripts/summarize_findings.py
-python3 scripts/summarize_findings.py --verify-readme
+python3 scripts/summarize_findings.py --verify-docs
 python3 -m unittest discover -s tests
 python3 scripts/create_notebook.py
 ```

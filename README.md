@@ -69,7 +69,7 @@ pip install pandas numpy plotly matplotlib seaborn jupyter
 ```bash
 python3 scripts/validate_data.py
 python3 scripts/summarize_findings.py
-python3 scripts/summarize_findings.py --verify-readme
+python3 scripts/summarize_findings.py --verify-docs
 python3 -m unittest discover -s tests
 ```
 
@@ -120,8 +120,8 @@ python3 scripts/create_notebook.py
 - `scripts/summarize_findings.py` recomputes the README headline numbers from
   committed CSVs only, including toss calculations that exclude no-result
   matches.
-- `scripts/summarize_findings.py --verify-readme` fails when headline README
-  claims drift from the committed CSVs.
+- `scripts/summarize_findings.py --verify-docs` fails when headline README or
+  dataset-card claims drift from the committed CSVs.
 - `scripts/create_notebook.py` is the source of truth for
   `IPL_Evolution_Analysis.ipynb`; update the script first, then regenerate.
 

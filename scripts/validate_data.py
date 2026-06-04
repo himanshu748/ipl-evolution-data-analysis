@@ -22,6 +22,7 @@ REQUIRED_COLUMNS = {
         "winner",
         "toss_winner",
         "toss_decision",
+        "batting_first_won",
     },
     "ipl_batting_stats.csv": {
         "season",
@@ -33,6 +34,7 @@ REQUIRED_COLUMNS = {
         "dismissals",
         "strike_rate",
         "batting_avg",
+        "boundary_pct",
     },
     "ipl_bowling_stats.csv": {
         "season",
@@ -42,6 +44,42 @@ REQUIRED_COLUMNS = {
         "wickets",
         "extras_conceded",
         "economy",
+        "bowling_avg",
+        "bowling_sr",
+    },
+}
+
+EXPECTED_SEASONS = set(range(2008, 2026))
+
+NON_NEGATIVE_COLUMNS = {
+    "ipl_matches.csv": {
+        "total_runs",
+        "total_balls",
+        "total_fours",
+        "total_sixes",
+        "total_wickets",
+        "total_extras",
+        "innings1_runs",
+        "innings2_runs",
+    },
+    "ipl_batting_stats.csv": {
+        "runs",
+        "balls_faced",
+        "fours",
+        "sixes",
+        "dismissals",
+        "strike_rate",
+        "batting_avg",
+        "boundary_pct",
+    },
+    "ipl_bowling_stats.csv": {
+        "runs_conceded",
+        "balls_bowled",
+        "wickets",
+        "extras_conceded",
+        "economy",
+        "bowling_avg",
+        "bowling_sr",
     },
 }
 
@@ -59,7 +97,65 @@ def validate_file(filename: str, required_columns: set[str]) -> pd.DataFrame:
         raise ValueError(f"{filename} is empty")
     if frame["season"].isna().any():
         raise ValueError(f"{filename} contains blank seasons")
+    frame["season"] = pd.to_numeric(frame["season"], errors="raise").astype(int)
     return frame
+
+
+def validate_non_negative(filename: str, frame: pd.DataFrame) -> None:
+    for column in sorted(NON_NEGATIVE_COLUMNS[filename]):
+        values = pd.to_numeric(frame[column], errors="raise")
+        if (values < 0).any():
+            raise ValueError(f"{filename} contains negative {column}")
+
+
+def validate_season_contract(frames: dict[str, pd.DataFrame]) -> None:
+    for filename, frame in frames.items():
+        seasons = set(frame["season"].unique())
+        if seasons != EXPECTED_SEASONS:
+            missing = sorted(EXPECTED_SEASONS - seasons)
+            extra = sorted(seasons - EXPECTED_SEASONS)
+            raise ValueError(
+                f"{filename} season coverage mismatch; missing={missing}, extra={extra}"
+            )
+
+
+def validate_matches(matches: pd.DataFrame) -> None:
+    if matches["match_id"].duplicated().any():
+        raise ValueError("ipl_matches.csv contains duplicate match_id values")
+    parsed_dates = pd.to_datetime(matches["date"], errors="coerce")
+    if parsed_dates.isna().any():
+        raise ValueError("ipl_matches.csv contains unparsable dates")
+    if (parsed_dates.dt.year != matches["season"]).any():
+        raise ValueError("ipl_matches.csv contains dates outside their season year")
+    if (matches["total_runs"] <= 0).any():
+        raise ValueError("ipl_matches.csv contains non-positive total_runs")
+    if (matches["total_balls"] <= 0).any():
+        raise ValueError("ipl_matches.csv contains non-positive total_balls")
+
+    toss_decisions = set(matches["toss_decision"].dropna().unique())
+    if toss_decisions - {"bat", "field"}:
+        raise ValueError(f"Unexpected toss decisions: {sorted(toss_decisions)}")
+
+
+def validate_batting(batting: pd.DataFrame) -> None:
+    if (batting["balls_faced"] == 0).any():
+        raise ValueError("ipl_batting_stats.csv contains zero balls_faced rows")
+    expected_strike_rate = (batting["runs"] / batting["balls_faced"] * 100).round(2)
+    max_delta = (batting["strike_rate"] - expected_strike_rate).abs().max()
+    if max_delta > 0.01:
+        raise ValueError("ipl_batting_stats.csv contains inconsistent strike_rate values")
+
+
+def validate_bowling(bowling: pd.DataFrame) -> None:
+    if (bowling["balls_bowled"] == 0).any():
+        raise ValueError("ipl_bowling_stats.csv contains zero balls_bowled rows")
+    expected_economy = (
+        (bowling["runs_conceded"] + bowling["extras_conceded"])
+        / (bowling["balls_bowled"] / 6)
+    ).round(2)
+    max_delta = (bowling["economy"] - expected_economy).abs().max()
+    if max_delta > 0.01:
+        raise ValueError("ipl_bowling_stats.csv contains inconsistent economy values")
 
 
 def main() -> None:
@@ -67,6 +163,9 @@ def main() -> None:
         filename: validate_file(filename, columns)
         for filename, columns in REQUIRED_COLUMNS.items()
     }
+    for filename, frame in frames.items():
+        validate_non_negative(filename, frame)
+    validate_season_contract(frames)
 
     matches = frames["ipl_matches.csv"]
     batting = frames["ipl_batting_stats.csv"]
@@ -75,14 +174,9 @@ def main() -> None:
     season_count = matches["season"].astype(str).nunique()
     if season_count < 10:
         raise ValueError(f"Expected at least 10 seasons, found {season_count}")
-    if matches["match_id"].duplicated().any():
-        raise ValueError("ipl_matches.csv contains duplicate match_id values")
-    if (matches["total_runs"] <= 0).any():
-        raise ValueError("ipl_matches.csv contains non-positive total_runs")
-    if (batting["balls_faced"] < 0).any():
-        raise ValueError("ipl_batting_stats.csv contains negative balls_faced")
-    if (bowling["balls_bowled"] < 0).any():
-        raise ValueError("ipl_bowling_stats.csv contains negative balls_bowled")
+    validate_matches(matches)
+    validate_batting(batting)
+    validate_bowling(bowling)
 
     print("IPL summary datasets validated")
     print(f"- matches: {len(matches):,}")

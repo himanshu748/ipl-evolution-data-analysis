@@ -234,7 +234,8 @@ whether toss wins translate into match wins.
         ),
         code_cell(
             """
-toss = matches.assign(toss_won_match=matches["toss_winner"] == matches["winner"])
+completed_matches = matches.dropna(subset=["winner"]).copy()
+toss = completed_matches.assign(toss_won_match=completed_matches["toss_winner"] == completed_matches["winner"])
 toss_trend = (
     toss.groupby(["season", "season_int"], as_index=False)
     .agg(
@@ -342,17 +343,19 @@ fig.show()
 ## Conclusions
 
 1. IPL scoring has moved upward across the sample, with late-era seasons showing
-   higher match totals and run rates than the early years.
-2. Six-hitting is a major part of the scoring shift, not just incremental
-   strike rotation.
+   higher match totals and run rates than the early years. The committed data
+   shows an about 17% run-rate lift from 2008-2010 to 2023-2025.
+2. Six-hitting is the clearest scoring shift: recent seasons show roughly 71%
+   more sixes per match than the first three seasons.
 3. Bowling economy rose, but wicket-taking remains a meaningful counterweight,
    suggesting adaptation rather than total bowler irrelevance.
-4. Toss advantage is noisy and usually close to a coin flip; chase preference is
-   often more visible than a true toss-win edge.
+4. Toss advantage is noisy and close to a coin flip when no-result matches are
+   excluded; chase preference is often more visible than a true toss-win edge.
 
 ### Reproducibility Notes
 
 - Run `python3 scripts/validate_data.py` before opening the notebook.
+- Run `python3 scripts/summarize_findings.py` to reproduce the headline claims.
 - Run `python3 scripts/create_notebook.py` to regenerate this notebook.
 - Run `python3 scripts/process_data.py` only when the raw Cricsheet CSV archive
   is available under `data/ipl_raw/`.

@@ -22,9 +22,9 @@ This project analyzes committed IPL summary datasets across **1,169 IPL matches*
 
 | # | Finding | Evidence |
 |---|---------|----------|
-| 1 | **The Run Explosion is Real** | Average run rates have surged 25%+ since 2008, driven by a near-doubling of six-hitting frequency |
+| 1 | **The Run Explosion is Real** | Run rate rose about 17% from 2008-2010 to 2023-2025, with sixes per match up about 71% |
 | 2 | **Bowlers Have Adapted, Not Died** | Despite soaring economy rates, wickets per match remain stable |
-| 3 | **The Toss is (Mostly) Irrelevant** | Toss advantage hovers around 50%, though chasing has become preferred in recent seasons |
+| 3 | **The Toss is (Mostly) Irrelevant** | Toss winner match-win rate is near 50% across completed matches, though chasing has become preferred in recent seasons |
 
 ### Surprise "Aha" Moment
 > IPL scoring did not rise evenly. Six-hitting growth and high-scoring recent seasons changed the shape of match totals, while wickets remained a meaningful counterweight for bowlers.
@@ -52,6 +52,7 @@ ipl-evolution-data-analysis/
 │   └── ipl_bowling_stats.csv       # 🎳 Player bowling stats by season
 ├── scripts/
 │   ├── validate_data.py            # ✅ Validate committed CSVs
+│   ├── summarize_findings.py       # 📌 Recompute README headline claims
 │   ├── process_data.py             # 🔧 Optional raw data -> clean datasets pipeline
 │   └── create_notebook.py          # 📓 Notebook generator script
 ```
@@ -66,6 +67,7 @@ pip install pandas numpy plotly matplotlib seaborn jupyter
 ### Step 1: Validate the committed data
 ```bash
 python3 scripts/validate_data.py
+python3 scripts/summarize_findings.py
 ```
 
 ### Step 2: Regenerate the notebook
@@ -100,9 +102,22 @@ python3 scripts/create_notebook.py
 | Category | How |
 |----------|-----|
 | 🏆 **Best Storyteller** | Full end-to-end narrative with clear questions, analysis, and conclusions |
-| 😍 **Best Data Visualization** | 10 interactive Plotly charts with premium dark theme |
+| 😍 **Best Data Visualization** | Six focused interactive Plotly charts with a premium dark theme |
 | 💡 **Sherlock "Aha" Moment** | Scoring growth + six-hitting pressure + toss myth |
 | 💌 **Best Original Dataset** | Summary datasets processed from open Cricsheet data |
+
+---
+
+## Reproducibility Contract
+
+- `scripts/validate_data.py` checks schema, exact 2008-2025 season coverage,
+  non-negative metrics, date/season consistency, and recomputed strike
+  rate/economy values.
+- `scripts/summarize_findings.py` recomputes the README headline numbers from
+  committed CSVs only, including toss calculations that exclude no-result
+  matches.
+- `scripts/create_notebook.py` is the source of truth for
+  `IPL_Evolution_Analysis.ipynb`; update the script first, then regenerate.
 
 ---
 

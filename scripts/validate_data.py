@@ -137,7 +137,23 @@ def validate_matches(matches: pd.DataFrame) -> None:
         raise ValueError(f"Unexpected toss decisions: {sorted(toss_decisions)}")
 
 
+def validate_unique_player_seasons(
+    frame: pd.DataFrame,
+    filename: str,
+    player_column: str,
+) -> None:
+    duplicated = frame.duplicated(subset=["season", player_column])
+    if duplicated.any():
+        examples = (
+            frame.loc[duplicated, ["season", player_column]]
+            .head(5)
+            .to_dict("records")
+        )
+        raise ValueError(f"{filename} contains duplicate season/player rows: {examples}")
+
+
 def validate_batting(batting: pd.DataFrame) -> None:
+    validate_unique_player_seasons(batting, "ipl_batting_stats.csv", "striker")
     if (batting["balls_faced"] == 0).any():
         raise ValueError("ipl_batting_stats.csv contains zero balls_faced rows")
     expected_strike_rate = (batting["runs"] / batting["balls_faced"] * 100).round(2)
@@ -147,6 +163,7 @@ def validate_batting(batting: pd.DataFrame) -> None:
 
 
 def validate_bowling(bowling: pd.DataFrame) -> None:
+    validate_unique_player_seasons(bowling, "ipl_bowling_stats.csv", "bowler")
     if (bowling["balls_bowled"] == 0).any():
         raise ValueError("ipl_bowling_stats.csv contains zero balls_bowled rows")
     expected_economy = (

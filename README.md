@@ -70,6 +70,7 @@ pip install pandas numpy plotly matplotlib seaborn jupyter
 python3 scripts/validate_data.py
 python3 scripts/summarize_findings.py
 python3 scripts/summarize_findings.py --verify-readme
+python3 -m unittest discover -s tests
 ```
 
 ### Step 2: Regenerate the notebook
@@ -114,8 +115,8 @@ python3 scripts/create_notebook.py
 ## Reproducibility Contract
 
 - `scripts/validate_data.py` checks schema, exact 2008-2025 season coverage,
-  non-negative metrics, date/season consistency, and recomputed strike
-  rate/economy values.
+  non-negative metrics, date/season consistency, unique player-season rows,
+  and recomputed strike rate/economy values.
 - `scripts/summarize_findings.py` recomputes the README headline numbers from
   committed CSVs only, including toss calculations that exclude no-result
   matches.

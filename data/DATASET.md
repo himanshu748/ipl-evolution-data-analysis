@@ -21,6 +21,7 @@
 - Match summaries aggregate runs, wickets, boundaries, innings totals, toss fields, and outcome fields.
 - Batting summaries aggregate player-season runs, legal balls faced, boundaries, dismissals, strike rate, average, and boundary share.
 - Bowling summaries aggregate player-season runs conceded, legal balls bowled, bowler-credited wickets, extras, economy, average, and strike rate.
+- Player-season summary files are expected to contain one row per `(season, player)` grain.
 
 ## Limitations
 
@@ -35,5 +36,6 @@
 python3 scripts/validate_data.py
 python3 scripts/summarize_findings.py
 python3 scripts/summarize_findings.py --verify-readme
+python3 -m unittest discover -s tests
 python3 scripts/create_notebook.py
 ```

@@ -131,10 +131,49 @@ def validate_matches(matches: pd.DataFrame) -> None:
         raise ValueError("ipl_matches.csv contains non-positive total_runs")
     if (matches["total_balls"] <= 0).any():
         raise ValueError("ipl_matches.csv contains non-positive total_balls")
+    innings_runs = matches["innings1_runs"] + matches["innings2_runs"]
+    if (innings_runs > matches["total_runs"]).any():
+        raise ValueError("ipl_matches.csv contains innings runs greater than total_runs")
+    innings_wickets = matches["innings1_wickets"] + matches["innings2_wickets"]
+    if (innings_wickets > matches["total_wickets"]).any():
+        raise ValueError(
+            "ipl_matches.csv contains innings wickets greater than total_wickets"
+        )
+    boundary_runs = matches["total_fours"] * 4 + matches["total_sixes"] * 6
+    if (boundary_runs > matches["total_runs"]).any():
+        raise ValueError("ipl_matches.csv contains boundary runs greater than total_runs")
 
     toss_decisions = set(matches["toss_decision"].dropna().unique())
     if toss_decisions - {"bat", "field"}:
         raise ValueError(f"Unexpected toss decisions: {sorted(toss_decisions)}")
+
+    validate_match_team_fields(matches)
+
+
+def validate_match_team_fields(matches: pd.DataFrame) -> None:
+    teams = matches[["team1", "team2"]]
+    toss_valid = (matches["toss_winner"] == teams["team1"]) | (
+        matches["toss_winner"] == teams["team2"]
+    )
+    if (~toss_valid).any():
+        raise ValueError("ipl_matches.csv contains toss_winner outside team1/team2")
+
+    completed = matches[matches["winner"].notna()].copy()
+    winner_valid = (completed["winner"] == completed["team1"]) | (
+        completed["winner"] == completed["team2"]
+    )
+    if (~winner_valid).any():
+        raise ValueError("ipl_matches.csv contains winner outside team1/team2")
+
+    batting_first_valid = (matches["batting_first_team"] == teams["team1"]) | (
+        matches["batting_first_team"] == teams["team2"]
+    )
+    if (~batting_first_valid).any():
+        raise ValueError("ipl_matches.csv contains batting_first_team outside team1/team2")
+
+    expected_batting_first_won = completed["winner"] == completed["batting_first_team"]
+    if (completed["batting_first_won"] != expected_batting_first_won).any():
+        raise ValueError("ipl_matches.csv contains inconsistent batting_first_won values")
 
 
 def validate_unique_player_seasons(

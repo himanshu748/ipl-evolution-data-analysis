@@ -368,6 +368,9 @@ fig.show()
         ),
     ]
 
+    for index, cell in enumerate(cells, start=1):
+        cell["id"] = f"ipl-evolution-{index:02d}"
+
     nb.cells = cells
     return nb
 

@@ -59,6 +59,7 @@ def build_summary() -> dict[str, Any]:
         "dataset": {
             "matches": int(len(matches)),
             "seasons": f"{matches['season'].min()}-{matches['season'].max()}",
+            "latest_match_date": matches["date"].max().strftime("%Y-%m-%d"),
             "batting_rows": int(len(batting)),
             "bowling_rows": int(len(bowling)),
         },
@@ -92,12 +93,46 @@ def build_summary() -> dict[str, Any]:
     return summary
 
 
+def format_pct(value: float) -> str:
+    return f"{value:.1f}".rstrip("0").rstrip(".")
+
+
+def verify_readme_claims(summary: dict[str, Any]) -> list[str]:
+    readme = (ROOT / "README.md").read_text()
+    dataset = summary["dataset"]
+    scoring = summary["scoring"]
+    expectations = {
+        "match count": f"{dataset['matches']:,} IPL matches",
+        "season coverage": f"{dataset['seasons']}",
+        "latest match date": f"latest committed match date is {dataset['latest_match_date']}",
+        "run-rate lift": f"about {format_pct(scoring['run_rate_change_pct'])}%",
+        "sixes lift": f"about {format_pct(scoring['sixes_per_match_change_pct'])}%",
+    }
+    return [
+        f"README missing {label}: {expected!r}"
+        for label, expected in expectations.items()
+        if expected not in readme
+    ]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Summarize committed IPL analysis findings")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON")
+    parser.add_argument(
+        "--verify-readme",
+        action="store_true",
+        help="Fail if README headline claims drift from committed CSVs",
+    )
     args = parser.parse_args()
 
     summary = build_summary()
+    if args.verify_readme:
+        errors = verify_readme_claims(summary)
+        if errors:
+            raise SystemExit("\n".join(errors))
+        print("README headline claims match committed data")
+        return
+
     if args.json:
         print(json.dumps(summary, indent=2))
         return
@@ -107,6 +142,7 @@ def main() -> None:
     toss = summary["toss"]
     print("IPL findings summary")
     print(f"- matches: {dataset['matches']:,} across {dataset['seasons']}")
+    print(f"- latest committed match date: {dataset['latest_match_date']}")
     print(
         "- run rate: "
         f"{scoring['early_run_rate']} ({min(EARLY_SEASONS)}-{max(EARLY_SEASONS)}) "

@@ -1,17 +1,25 @@
-"""
-IPL Data Processing Script
-Processes raw Cricsheet ball-by-ball data into clean, analysis-ready DataFrames.
-This serves as the "original dataset" creation step — we're compiling raw match files
-into structured datasets with derived metrics.
-"""
+"""Build IPL summary CSVs from a local Cricsheet ball-by-ball archive."""
+
+from __future__ import annotations
+
+import csv
+from pathlib import Path
 
 import pandas as pd
-import os
-import warnings
-warnings.filterwarnings('ignore')
 
-RAW_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'ipl_raw')
-OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+
+ROOT = Path(__file__).resolve().parents[1]
+RAW_DIR = ROOT / "data" / "ipl_raw"
+OUT_DIR = ROOT / "data"
+
+BOWLER_CREDITED_WICKET_TYPES = {
+    "bowled",
+    "caught",
+    "caught and bowled",
+    "hit wicket",
+    "lbw",
+    "stumped",
+}
 
 
 def parse_info_file(filepath):
@@ -21,9 +29,8 @@ def parse_info_file(filepath):
         'players': {},
         'umpires': [],
     }
-    with open(filepath, 'r') as f:
-        for line in f:
-            parts = line.strip().split(',')
+    with open(filepath, newline="") as f:
+        for parts in csv.reader(f):
             if len(parts) < 2:
                 continue
             if parts[0] == 'info':
@@ -46,16 +53,28 @@ def parse_info_file(filepath):
     return info
 
 
+def delivery_flag(frame: pd.DataFrame, column: str) -> pd.Series:
+    """Return a boolean flag for an optional Cricsheet extras column."""
+    if column not in frame.columns:
+        return pd.Series(False, index=frame.index)
+    return frame[column].notna()
+
+
+def legal_delivery_mask(frame: pd.DataFrame) -> pd.Series:
+    """Cricket balls exclude wides and no-balls from bowler/batter ball counts."""
+    return ~(delivery_flag(frame, "wides") | delivery_flag(frame, "noballs"))
+
+
 def process_all_matches():
     """Process all match files and create consolidated DataFrames."""
-    if not os.path.isdir(RAW_DIR):
+    if not RAW_DIR.is_dir():
         raise FileNotFoundError(
             f"Raw Cricsheet directory not found: {RAW_DIR}. "
             "Download/extract the raw IPL CSV archive into data/ipl_raw/ "
             "or use scripts/validate_data.py with the committed summary CSVs."
         )
 
-    files = os.listdir(RAW_DIR)
+    files = [path.name for path in RAW_DIR.iterdir()]
     data_files = sorted([f for f in files if f.endswith('.csv') and '_info' not in f])
     info_files = sorted([f for f in files if f.endswith('_info.csv')])
     if not data_files or not info_files:
@@ -71,7 +90,7 @@ def process_all_matches():
     for inf in info_files:
         match_id = inf.replace('_info.csv', '')
         try:
-            info_map[match_id] = parse_info_file(os.path.join(RAW_DIR, inf))
+            info_map[match_id] = parse_info_file(RAW_DIR / inf)
         except Exception as e:
             print(f"  Skipping info file {inf}: {e}")
 
@@ -79,7 +98,7 @@ def process_all_matches():
     all_dfs = []
     for i, df_file in enumerate(data_files):
         try:
-            df = pd.read_csv(os.path.join(RAW_DIR, df_file), low_memory=False)
+            df = pd.read_csv(RAW_DIR / df_file, low_memory=False)
             all_dfs.append(df)
         except Exception as e:
             print(f"  Skipping match file {df_file}: {e}")
@@ -91,6 +110,9 @@ def process_all_matches():
         raise ValueError("No match data files could be parsed")
     balls_df = pd.concat(all_dfs, ignore_index=True)
     print(f"Total deliveries: {len(balls_df):,}")
+    for optional_extra in ("wides", "noballs"):
+        if optional_extra not in balls_df.columns:
+            balls_df[optional_extra] = pd.NA
 
     # CRITICAL: Normalize season to string to avoid mixed int/str duplicates
     balls_df['season'] = balls_df['season'].astype(str)
@@ -137,7 +159,7 @@ def process_all_matches():
         total_wickets = match_balls['wicket_type'].notna().sum()
         total_fours = (match_balls['runs_off_bat'] == 4).sum()
         total_sixes = (match_balls['runs_off_bat'] == 6).sum()
-        total_balls = len(match_balls)
+        total_balls = int(legal_delivery_mask(match_balls).sum())
         total_extras = match_balls['extras'].sum()
 
         # Innings breakdown
@@ -193,13 +215,19 @@ def process_all_matches():
 
     # Create player-level batting stats per season
     print("Creating player batting stats...")
+    legal_batting_balls = balls_df[legal_delivery_mask(balls_df)]
+    batting_balls = (
+        legal_batting_balls.groupby(['season', 'striker'])
+        .size()
+        .reset_index(name='balls_faced')
+    )
     batting_stats = balls_df.groupby(['season', 'striker']).agg(
         runs=('runs_off_bat', 'sum'),
-        balls_faced=('runs_off_bat', 'count'),
         fours=('runs_off_bat', lambda x: (x == 4).sum()),
         sixes=('runs_off_bat', lambda x: (x == 6).sum()),
-        dismissals=('player_dismissed', lambda x: (x == x.name[1] if hasattr(x, 'name') else x.notna()).sum()),
     ).reset_index()
+    batting_stats = batting_stats.merge(batting_balls, on=['season', 'striker'], how='left')
+    batting_stats['balls_faced'] = batting_stats['balls_faced'].fillna(0).astype(int)
 
     # Simpler dismissals calc
     dismissals = balls_df[balls_df['player_dismissed'].notna()].groupby(
@@ -207,15 +235,9 @@ def process_all_matches():
     ).size().reset_index(name='dismissals')
     dismissals.rename(columns={'player_dismissed': 'striker'}, inplace=True)
 
-    batting_stats = balls_df.groupby(['season', 'striker']).agg(
-        runs=('runs_off_bat', 'sum'),
-        balls_faced=('runs_off_bat', 'count'),
-        fours=('runs_off_bat', lambda x: (x == 4).sum()),
-        sixes=('runs_off_bat', lambda x: (x == 6).sum()),
-    ).reset_index()
-
     batting_stats = batting_stats.merge(dismissals, on=['season', 'striker'], how='left')
     batting_stats['dismissals'] = batting_stats['dismissals'].fillna(0).astype(int)
+    batting_stats = batting_stats[batting_stats['balls_faced'] > 0].copy()
     batting_stats['strike_rate'] = (batting_stats['runs'] / batting_stats['balls_faced'] * 100).round(2)
     batting_stats['batting_avg'] = batting_stats.apply(
         lambda r: r['runs'] / r['dismissals'] if r['dismissals'] > 0 else r['runs'], axis=1
@@ -226,16 +248,30 @@ def process_all_matches():
 
     # Create player-level bowling stats per season
     print("Creating player bowling stats...")
-    bowling_balls = balls_df[balls_df['wides'].isna()].copy()  # Wides don't count as legal deliveries
+    bowling_balls = (
+        balls_df[legal_delivery_mask(balls_df)]
+        .groupby(['season', 'bowler'])
+        .size()
+        .reset_index(name='balls_bowled')
+    )
+    bowler_wickets = (
+        balls_df[balls_df['wicket_type'].isin(BOWLER_CREDITED_WICKET_TYPES)]
+        .groupby(['season', 'bowler'])
+        .size()
+        .reset_index(name='wickets')
+    )
 
     bowling_stats = balls_df.groupby(['season', 'bowler']).agg(
         runs_conceded=('runs_off_bat', 'sum'),
-        balls_bowled=('bowler', 'count'),
-        wickets=('wicket_type', lambda x: x.notna().sum()),
         extras_conceded=('extras', 'sum'),
         wides=('wides', lambda x: x.notna().sum()),
         noballs=('noballs', lambda x: x.notna().sum()),
     ).reset_index()
+    bowling_stats = bowling_stats.merge(bowling_balls, on=['season', 'bowler'], how='left')
+    bowling_stats = bowling_stats.merge(bowler_wickets, on=['season', 'bowler'], how='left')
+    bowling_stats['balls_bowled'] = bowling_stats['balls_bowled'].fillna(0).astype(int)
+    bowling_stats['wickets'] = bowling_stats['wickets'].fillna(0).astype(int)
+    bowling_stats = bowling_stats[bowling_stats['balls_bowled'] > 0].copy()
 
     bowling_stats['economy'] = (
         (bowling_stats['runs_conceded'] + bowling_stats['extras_conceded']) /
@@ -251,10 +287,10 @@ def process_all_matches():
 
     # Save all datasets
     print("Saving processed datasets...")
-    balls_df.to_csv(os.path.join(OUT_DIR, 'ipl_deliveries.csv'), index=False)
-    matches_df.to_csv(os.path.join(OUT_DIR, 'ipl_matches.csv'), index=False)
-    batting_stats.to_csv(os.path.join(OUT_DIR, 'ipl_batting_stats.csv'), index=False)
-    bowling_stats.to_csv(os.path.join(OUT_DIR, 'ipl_bowling_stats.csv'), index=False)
+    balls_df.to_csv(OUT_DIR / 'ipl_deliveries.csv', index=False)
+    matches_df.to_csv(OUT_DIR / 'ipl_matches.csv', index=False)
+    batting_stats.to_csv(OUT_DIR / 'ipl_batting_stats.csv', index=False)
+    bowling_stats.to_csv(OUT_DIR / 'ipl_bowling_stats.csv', index=False)
 
     print("\n✅ Data processing complete!")
     print(f"  - ipl_deliveries.csv: {len(balls_df):,} rows")

@@ -50,6 +50,9 @@ summary datasets committed in this repository:
 - `data/ipl_batting_stats.csv`
 - `data/ipl_bowling_stats.csv`
 
+The committed snapshot contains 1,169 match summaries through 2025-06-03.
+See `data/DATASET.md` for source, coverage, transformations, and limitations.
+
 The raw Cricsheet ball-by-ball archive is intentionally not committed because
 it is large. The optional `scripts/process_data.py` pipeline can rebuild these
 summary files when `data/ipl_raw/` is available locally.
@@ -345,7 +348,7 @@ fig.show()
 1. IPL scoring has moved upward across the sample, with late-era seasons showing
    higher match totals and run rates than the early years. The committed data
    shows an about 17% run-rate lift from 2008-2010 to 2023-2025.
-2. Six-hitting is the clearest scoring shift: recent seasons show roughly 71%
+2. Six-hitting is the clearest scoring shift: recent seasons show roughly 71.5%
    more sixes per match than the first three seasons.
 3. Bowling economy rose, but wicket-taking remains a meaningful counterweight,
    suggesting adaptation rather than total bowler irrelevance.
@@ -356,6 +359,8 @@ fig.show()
 
 - Run `python3 scripts/validate_data.py` before opening the notebook.
 - Run `python3 scripts/summarize_findings.py` to reproduce the headline claims.
+- Run `python3 scripts/summarize_findings.py --verify-readme` to check docs
+  against the committed CSVs.
 - Run `python3 scripts/create_notebook.py` to regenerate this notebook.
 - Run `python3 scripts/process_data.py` only when the raw Cricsheet CSV archive
   is available under `data/ipl_raw/`.

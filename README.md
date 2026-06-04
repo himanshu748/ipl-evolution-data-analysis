@@ -12,7 +12,7 @@
 
 The **Indian Premier League (IPL)** launched in 2008 and fundamentally changed cricket forever. But beyond the fireworks and celebrity owners, **what does the data actually tell us?**
 
-This project analyzes committed IPL summary datasets across **1,169 IPL matches** spanning **18 seasons (2008-2025)** to answer three key questions:
+This project analyzes committed IPL summary datasets across **1,169 IPL matches** spanning **18 seasons (2008-2025)** to answer three key questions. The latest committed match date is **2025-06-03**.
 
 > 🔍 **Q1:** How has batting evolved? Are teams scoring faster than ever?  
 > 🔍 **Q2:** Has the bat-vs-ball balance shifted? Are bowlers endangered?  
@@ -22,7 +22,7 @@ This project analyzes committed IPL summary datasets across **1,169 IPL matches*
 
 | # | Finding | Evidence |
 |---|---------|----------|
-| 1 | **The Run Explosion is Real** | Run rate rose about 17% from 2008-2010 to 2023-2025, with sixes per match up about 71% |
+| 1 | **The Run Explosion is Real** | Run rate rose about 17% from 2008-2010 to 2023-2025, with sixes per match up about 71.5% |
 | 2 | **Bowlers Have Adapted, Not Died** | Despite soaring economy rates, wickets per match remain stable |
 | 3 | **The Toss is (Mostly) Irrelevant** | Toss winner match-win rate is near 50% across completed matches, though chasing has become preferred in recent seasons |
 
@@ -49,7 +49,8 @@ ipl-evolution-data-analysis/
 ├── data/
 │   ├── ipl_matches.csv             # 📊 1,169 match summaries
 │   ├── ipl_batting_stats.csv       # 🏏 Player batting stats by season
-│   └── ipl_bowling_stats.csv       # 🎳 Player bowling stats by season
+│   ├── ipl_bowling_stats.csv       # 🎳 Player bowling stats by season
+│   └── DATASET.md                  # 🧾 Source, coverage, and limitations card
 ├── scripts/
 │   ├── validate_data.py            # ✅ Validate committed CSVs
 │   ├── summarize_findings.py       # 📌 Recompute README headline claims
@@ -68,6 +69,7 @@ pip install pandas numpy plotly matplotlib seaborn jupyter
 ```bash
 python3 scripts/validate_data.py
 python3 scripts/summarize_findings.py
+python3 scripts/summarize_findings.py --verify-readme
 ```
 
 ### Step 2: Regenerate the notebook
@@ -95,7 +97,8 @@ python3 scripts/create_notebook.py
 - **Source:** [Cricsheet.org](https://cricsheet.org/) — Open-source ball-by-ball cricket data
 - **Committed Format:** CSV summary files for matches, batting-by-season, and bowling-by-season
 - **Processing:** Optional raw match CSVs can be parsed into structured datasets using Python/Pandas
-- **Current committed data:** 1,169 match summaries plus player-season batting and bowling summaries
+- **Current committed data:** 1,169 match summaries plus player-season batting and bowling summaries; latest committed match date is 2025-06-03
+- **Coverage Card:** [`data/DATASET.md`](data/DATASET.md)
 
 ## 🏅 Challenge Categories Targeted
 
@@ -116,6 +119,8 @@ python3 scripts/create_notebook.py
 - `scripts/summarize_findings.py` recomputes the README headline numbers from
   committed CSVs only, including toss calculations that exclude no-result
   matches.
+- `scripts/summarize_findings.py --verify-readme` fails when headline README
+  claims drift from the committed CSVs.
 - `scripts/create_notebook.py` is the source of truth for
   `IPL_Evolution_Analysis.ipynb`; update the script first, then regenerate.
 
